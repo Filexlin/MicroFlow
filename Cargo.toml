@@ -1,5 +1,5 @@
 [workspace]
-members = ["abi", "core", "nodes", "python_runtime", "desktop", "cli", "distributed"]
+members = ["core", "abi", "python_runtime", "nodes", "tauri-app/src-tauri"]
 resolver = "2"
 
 [workspace.dependencies]

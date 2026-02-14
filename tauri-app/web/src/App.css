@@ -1,0 +1,36 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.toolbar {
+  padding: 10px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.toolbar button {
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+h1 {
+  margin: 0;
+  padding: 10px;
+  font-size: 1.5rem;
+  background: #242424;
+  color: white;
+}
+
+@media (prefers-color-scheme: light) {
+  h1 {
+    background: #f0f0f0;
+    color: #242424;
+  }
+}
