@@ -5,8 +5,10 @@
 
 pub mod types;
 pub mod engine;
+pub mod parameter;
 
 pub use types::{DataType, DataValue, ModelId, Error};
 pub use engine::*;
+pub use parameter::*;
 
 // TODO: Week 1 implementation
