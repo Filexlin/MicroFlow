@@ -8,8 +8,14 @@ pub struct AppState {
 }
 
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello {}", name)
+async fn get_system_info() -> Result<String, String> {
+    Ok("MicroFlow Ready".to_string())
+}
+
+#[tauri::command]
+async fn execute_node(node_type: String, inputs: String) -> Result<String, String> {
+    // 先返回mock数据，验证IPC通信
+    Ok(format!("Executed {} with {}", node_type, inputs))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -19,7 +25,8 @@ pub fn run() {
             vram_pool: Arc::new(Mutex::new(VramPool::new(2)))
         })
         .invoke_handler(tauri::generate_handler![
-            greet
+            get_system_info,
+            execute_node
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

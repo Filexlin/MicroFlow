@@ -1,0 +1,29 @@
+[33mcommit 620ff04982b8c6d6c057008002960206ec99b96d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m
+Author: Filexlin <filexlin@example.com>
+Date:   Sat Feb 14 16:27:22 2026 +0800
+
+    feat(tauri): Week 10-11 Tauri v2 + ReactFlow 基础搭建
+
+[33mcommit 8d32a71267159038cc312c9b9a606702390ea7f5[m
+Author: Filexlin <filexlin@example.com>
+Date:   Sat Feb 14 16:16:21 2026 +0800
+
+    feat(json-rpc): Week 9 JSON-RPC 协议实现
+
+[33mcommit 6318b9aa130f4fe5ebb408f9bab4448e8baca62a[m
+Author: Filexlin <filexlin@example.com>
+Date:   Sat Feb 14 16:10:34 2026 +0800
+
+    feat(lora): Week 8 LoRA 热切换实现
+
+[33mcommit 1f54f1f68aed51c72b06651e4e3c7661d3d7fef1[m
+Author: Filexlin <filexlin@example.com>
+Date:   Sat Feb 14 16:04:20 2026 +0800
+
+    fix(ci): 修复 workspace 配置错误 - 将 nodes/* 改为 nodes 以避免包含 src 子目录
+
+[33mcommit 2b1be1557b1dbf353feddfbe88f184c80bdf251b[m
+Author: Filexlin <filexlin@example.com>
+Date:   Sat Feb 14 15:55:13 2026 +0800
+
+    fix(tech-debt): Fix Week 1-7 compilation errors
