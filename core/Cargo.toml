@@ -10,10 +10,14 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 dashmap = { workspace = true }
 arc-swap = { workspace = true }
-llama-cpp-rs = { version = "0.3", features = ["cuda"] }
+llama_cpp_rs = { version = "0.3", default-features = false, optional = true }
 thiserror = "1.0"
 base64 = "0.21"
 tracing = "0.1"
+
+[features]
+default = []  # 默认不包含 llama
+llama = ["llama_cpp_rs"]  # 启用 llama 支持
 
 [dev-dependencies]
 proptest = { workspace = true }

@@ -21,7 +21,7 @@ pub fn validate_lora_header(path: &Path) -> Result<(), crate::ffi::FfiError> {
 }
 
 /// 估算LoRA显存使用量（简化版）
-pub fn estimate_lora_vram(path: &Path) -> Result<usize, crate::ffi::FfiError> {
+pub fn estimate_lora_vram(_path: &Path) -> Result<usize, crate::ffi::FfiError> {
     // 简单估算：假设每个LoRA层使用10MB
     Ok(10 * 1024 * 1024) // 10MB
 }

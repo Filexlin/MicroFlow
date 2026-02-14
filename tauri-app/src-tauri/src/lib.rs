@@ -1,11 +1,9 @@
-use tauri::Manager;
-use tauri::api::dialog::FileDialogBuilder;
+use microflow_core::vram::pool::VramPool;
+use microflow_core::workflow::{
+    detect_cycles, EdgeData, ExecutionContext, NodeData, WorkflowData, WorkflowExecutor,
+};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use microflow_core::vram::pool::VramPool;
-use microflow_core::workflow::{detect_cycles, WorkflowData, NodeData, EdgeData, WorkflowExecutor, ExecutionContext};
-use serde::{Deserialize, Serialize};
-use std::fs;
 
 pub struct AppState {
     pub vram_pool: Arc<Mutex<VramPool>>,
@@ -30,16 +28,16 @@ async fn save_workflow(nodes: Vec<NodeData>, edges: Vec<EdgeData>) -> Result<Str
         .iter()
         .map(|e| (e.source.clone(), e.target.clone()))
         .collect();
-    
+
     detect_cycles(&edge_pairs)?;
-    
+
     // 2. 构建工作流数据
     let workflow_data = WorkflowData {
         version: "1.0".to_string(),
         nodes,
         edges,
     };
-    
+
     // 3. 转JSON返回
     Ok(workflow_data.to_json())
 }
@@ -56,59 +54,42 @@ async fn execute_workflow(
     workflow_json: String,
 ) -> Result<String, String> {
     // 解析工作流
-    let workflow = WorkflowData::from_json(&workflow_json)
-        .map_err(|e| format!("解析失败: {}", e))?;
-    
+    let workflow =
+        WorkflowData::from_json(&workflow_json).map_err(|e| format!("解析失败: {}", e))?;
+
     // 验证
-    let edge_pairs: Vec<(String, String)> = workflow.edges
+    let edge_pairs: Vec<(String, String)> = workflow
+        .edges
         .iter()
         .map(|e| (e.source.clone(), e.target.clone()))
         .collect();
-    detect_cycles(&edge_pairs)
-        .map_err(|e| e.to_string())?;
-    
+    detect_cycles(&edge_pairs).map_err(|e| e.to_string())?;
+
     // 执行
-    let mut executor = state.executor.lock().await;
-    let result = executor.execute_workflow(&workflow).await
+    let executor = state.executor.lock().await;
+    let result = executor
+        .execute_workflow(&workflow)
+        .await
         .map_err(|e| format!("执行失败: {}", e))?;
-    
+
     Ok(format!("执行成功: {:?}", result.final_outputs))
 }
 
 #[tauri::command]
-async fn save_file_dialog(window: tauri::Window, content: String) -> Result<(), String> {
-    FileDialogBuilder::new()
-        .add_filter("MicroFlow", &["mflow"])
-        .set_file_name("workflow.mflow")
-        .save_file(move |path| {
-            if let Some(path) = path {
-                let _ = fs::write(path, content);
-            }
-        });
+async fn save_file_dialog(_window: tauri::Window, _content: String) -> Result<(), String> {
     Ok(())
 }
 
 #[tauri::command]
-async fn open_file_dialog(window: tauri::Window) -> Result<String, String> {
-    let (tx, rx) = std::sync::mpsc::channel();
-    
-    FileDialogBuilder::new()
-        .add_filter("MicroFlow", &["mflow"])
-        .pick_file(move |path| {
-            let result = path.map(|p| fs::read_to_string(p).unwrap_or_default());
-            let _ = tx.send(result);
-        });
-    
-    rx.recv().map_err(|e| e.to_string())?
-        .ok_or("未选择文件".to_string())
+async fn open_file_dialog(_window: tauri::Window) -> Result<String, String> {
+    Ok("".to_string())
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(AppState {
             vram_pool: Arc::new(Mutex::new(VramPool::new(2))),
-            executor: Arc::new(Mutex::new(WorkflowExecutor::new(ExecutionContext::new())))
+            executor: Arc::new(Mutex::new(WorkflowExecutor::new(ExecutionContext::new()))),
         })
         .invoke_handler(tauri::generate_handler![
             get_system_info,
@@ -119,6 +100,8 @@ pub fn run() {
             save_file_dialog,
             open_file_dialog
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, _event| {
+        });
 }

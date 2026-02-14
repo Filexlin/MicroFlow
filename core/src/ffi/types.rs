@@ -38,6 +38,7 @@ impl Default for ContextParams {
     }
 }
 
+#[cfg(feature = "llama")]
 impl From<LoadParams> for llama_cpp_rs::LlamaModelParams {
     fn from(p: LoadParams) -> Self {
         let mut params = llama_cpp_rs::LlamaModelParams::default();
@@ -49,6 +50,7 @@ impl From<LoadParams> for llama_cpp_rs::LlamaModelParams {
     }
 }
 
+#[cfg(feature = "llama")]
 impl From<ContextParams> for llama_cpp_rs::LlamaContextParams {
     fn from(p: ContextParams) -> Self {
         let mut params = llama_cpp_rs::LlamaContextParams::default();

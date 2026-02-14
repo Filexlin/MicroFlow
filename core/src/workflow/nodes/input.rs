@@ -14,7 +14,12 @@ impl TextInputNode {
             data_type: DataType::Text,
             multiple: false,
         });
-        Self { text: text.to_string(), ports }
+        Self {
+            text: text.to_string(),
+            ports,
+        }
     }
-    pub fn execute(&self) -> String { self.text.clone() }
+    pub fn execute(&self) -> String {
+        self.text.clone()
+    }
 }

@@ -20,7 +20,10 @@ impl LLMNode {
             data_type: DataType::Text,
             multiple: false,
         });
-        Self { model_id: model_id.to_string(), ports }
+        Self {
+            model_id: model_id.to_string(),
+            ports,
+        }
     }
     pub fn execute(&self, prompt: &str, _ctx: &ExecutionContext) -> String {
         format!("[模型{}响应] 你输入了: {}", self.model_id, prompt)

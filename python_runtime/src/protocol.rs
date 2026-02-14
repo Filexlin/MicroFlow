@@ -9,7 +9,7 @@ pub struct ExecuteRequest {
     pub inputs: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExecuteResponse {
     pub success: bool,
     pub outputs: HashMap<String, serde_json::Value>,
@@ -42,7 +42,7 @@ pub struct JsonRpcError {
 }
 
 // 执行结果
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExecutionResult {
     pub outputs: HashMap<String, serde_json::Value>,
     pub success: bool,

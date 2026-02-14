@@ -1,4 +1,4 @@
-pub mod dynamic_port;
 pub mod connection;
-pub use dynamic_port::{DynamicPorts, Port};
+pub mod dynamic_port;
 pub use connection::{Connection, ConnectionGraph};
+pub use dynamic_port::{DynamicPorts, Port};

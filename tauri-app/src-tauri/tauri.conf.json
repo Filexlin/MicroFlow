@@ -2,19 +2,9 @@
   "$schema": "https://schemas.tauri.app/config/2.0",
   "productName": "MicroFlow",
   "version": "0.1.0",
-  "description": "MicroFlow workflow editor",
-  "authors": ["Your Name <your.email@example.com>"],
-  "license": "MIT",
-  "repository": "https://github.com/yourusername/microflow",
+  "identifier": "com.microflow.app",
   "build": {
-    "frontend": {
-      "distDir": "../../web/dist",
-      "devPath": "http://localhost:5173"
-    }
-  },
-  "app": {
-    "bundle": {
-      "identifier": "com.microflow.app"
-    }
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../web"
   }
 }

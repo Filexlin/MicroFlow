@@ -1,17 +1,16 @@
-use std::fmt;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum DataType {
-    Number,      // f64
-    Text,        // String
-    Boolean,     // bool
-    Path,        // PathBuf
-    Binary,      // Vec<u8>
-    List(Box<DataType>), // 递归列表
+    Number,                      // f64
+    Text,                        // String
+    Boolean,                     // bool
+    Path,                        // PathBuf
+    Binary,                      // Vec<u8>
+    List(Box<DataType>),         // 递归列表
     Dict(String, Box<DataType>), // 字典
-    Model,       // 模型引用
-    Stream(Box<DataType>), // 流式数据
+    Model,                       // 模型引用
 }
 
 impl fmt::Display for DataType {
@@ -25,7 +24,6 @@ impl fmt::Display for DataType {
             DataType::List(inner) => write!(f, "List({})", inner),
             DataType::Dict(key, inner) => write!(f, "Dict({}, {})", key, inner),
             DataType::Model => write!(f, "Model"),
-            DataType::Stream(inner) => write!(f, "Stream({})", inner),
         }
     }
 }

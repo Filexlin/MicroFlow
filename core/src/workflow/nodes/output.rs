@@ -6,6 +6,12 @@ pub struct TextOutputNode {
     pub result: Option<String>,
 }
 
+impl Default for TextOutputNode {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TextOutputNode {
     pub fn new() -> Self {
         let mut ports = DynamicPorts::new();
@@ -14,7 +20,10 @@ impl TextOutputNode {
             data_type: DataType::Text,
             multiple: false,
         });
-        Self { ports, result: None }
+        Self {
+            ports,
+            result: None,
+        }
     }
     pub fn execute(&mut self, input: &str) {
         self.result = Some(input.to_string());

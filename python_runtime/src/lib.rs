@@ -1,8 +1,10 @@
+pub mod executor;
+pub mod manager;
 pub mod protocol;
 pub mod server;
-pub mod manager;
-pub mod executor;
-pub use protocol::{ExecuteRequest, ExecuteResponse, JsonRpcRequest, JsonRpcResponse, ExecutionResult};
+pub use executor::{PythonError, PythonExecutor};
+pub use manager::{PythonManager, PythonManagerError, PythonProcess};
+pub use protocol::{
+    ExecuteRequest, ExecuteResponse, ExecutionResult, JsonRpcRequest, JsonRpcResponse,
+};
 pub use server::start_server;
-pub use executor::{PythonExecutor, PythonError};
-pub use manager::{PythonManager, PythonProcess, PythonManagerError};
