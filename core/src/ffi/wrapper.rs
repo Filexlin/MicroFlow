@@ -1,13 +1,14 @@
 //! RAII包装器：安全封装llama.cpp C指针
 
 use std::ptr::NonNull;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::marker::PhantomData;
 use std::path::Path;
-use std::time::Instant;
+use std::time::{Instant, Duration};
 use crate::ffi::error::FfiError;
 use crate::ffi::types::{LoadParams, ContextParams};
 use crate::ffi::{initialize_backend, is_backend_initialized};
+use crate::ffi::lora::{LoRAState, validate_lora_header};
 use std::sync::atomic::Ordering;
 
 pub(crate) struct InnerModel {
@@ -29,7 +30,8 @@ impl Drop for InnerModel {
 
 /// 线程安全的模型句柄
 pub struct LlamaModel {
-    pub(crate) inner: Arc<InnerModel>,
+    pub(crate) inner: Arc<Mutex<InnerModel>>,
+    pub(crate) lora_state: Arc<Mutex<LoRAState>>,
 }
 
 impl LlamaModel {
@@ -81,25 +83,82 @@ impl LlamaModel {
         let n_vocab = unsafe { llama_cpp_rs::llama_n_vocab(ptr.as_ptr()) as usize };
         let n_layer = unsafe { llama_cpp_rs::llama_n_layer(ptr.as_ptr()) as usize };
         
-        let inner = Arc::new(InnerModel {
+        let inner = Arc::new(Mutex::new(InnerModel {
             ptr,
             size_bytes,
             n_vocab,
             n_layer,
             load_time: start,
-        });
+        }));
 
-        Ok(Self { inner })
+        let lora_state = Arc::new(Mutex::new(LoRAState {
+            active_lora: None,
+            apply_time: Duration::default(),
+        }));
+
+        Ok(Self { inner, lora_state })
     }
 
-    pub fn size_bytes(&self) -> usize { self.inner.size_bytes }
-    pub fn n_vocab(&self) -> usize { self.inner.n_vocab }
-    pub fn n_layer(&self) -> usize { self.inner.n_layer }
+    pub fn size_bytes(&self) -> usize {
+        self.inner.lock().unwrap().size_bytes
+    }
+    pub fn n_vocab(&self) -> usize {
+        self.inner.lock().unwrap().n_vocab
+    }
+    pub fn n_layer(&self) -> usize {
+        self.inner.lock().unwrap().n_layer
+    }
 
     pub(crate) fn with_ptr<F, R>(&self, f: F) -> R
     where F: FnOnce(*const llama_cpp_rs::llama_model) -> R,
     {
-        f(self.inner.ptr.as_ptr())
+        let model = self.inner.lock().unwrap();
+        f(model.ptr.as_ptr())
+    }
+
+    pub fn apply_lora<P: AsRef<Path>>(&self, lora_path: P) -> Result<(), FfiError> {
+        let start = Instant::now();
+        let path = lora_path.as_ref();
+        if !path.exists() { return Err(FfiError::ModelNotFound(path.to_path_buf())); }
+        
+        validate_lora_header(path)?; // 文件头校验
+        
+        let mut model = self.inner.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?;
+        let path_str = path.to_str().ok_or_else(|| FfiError::InvalidParameter("路径非法".into()))?;
+        
+        // 卸载旧LoRA
+        if self.lora_state.lock().unwrap().active_lora.is_some() {
+            self.unload_lora_inner(&mut model)?;
+        }
+        
+        // 应用新LoRA
+        let result = unsafe {
+            llama_cpp_rs::llama_model_apply_lora_from_file(model.ptr.as_ptr(), path_str, 1.0, std::ptr::null_mut())
+        };
+        
+        if let Err(e) = result {
+            let _ = self.unload_lora_inner(&mut model); // 回滚
+            return Err(FfiError::Internal(format!("LoRA失败(已回滚): {}", e)));
+        }
+        
+        let elapsed = start.elapsed();
+        if elapsed > Duration::from_millis(100) { eprintln!("警告: LoRA耗时{:?}", elapsed); }
+        
+        let mut state = self.lora_state.lock().unwrap();
+        state.active_lora = Some(path.to_string_lossy().to_string());
+        state.apply_time = elapsed;
+        Ok(())
+    }
+    
+    pub fn unload_lora(&self) -> Result<(), FfiError> {
+        let mut model = self.inner.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?;
+        self.unload_lora_inner(&mut model)?;
+        self.lora_state.lock().unwrap().active_lora = None;
+        Ok(())
+    }
+    
+    fn unload_lora_inner(&self, model: &mut InnerModel) -> Result<(), FfiError> {
+        unsafe { llama_cpp_rs::llama_model_remove_lora(model.ptr.as_ptr()).map_err(|e| FfiError::Internal(format!("卸载失败: {}", e))) }
     }
 }
 
@@ -107,7 +166,7 @@ unsafe impl Send for LlamaModel {}
 unsafe impl Sync for LlamaModel {}
 
 pub struct LlamaContext {
-    model: Arc<InnerModel>,
+    model: Arc<Mutex<InnerModel>>,
     ctx_ptr: NonNull<llama_cpp_rs::llama_context>,
     _marker: PhantomData<*mut ()>,
 }

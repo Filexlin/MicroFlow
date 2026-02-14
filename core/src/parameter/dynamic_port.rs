@@ -1,3 +1,13 @@
+// 临时导入，若core/src/types.rs存在则使用，否则占位
+#[derive(Debug, Clone, PartialEq)]
+pub enum DataType {
+    Text,
+    Number,
+    Tensor,
+    Image,
+    Any,
+}
+
 use crate::types::DataType;
 use std::collections::HashMap;
 

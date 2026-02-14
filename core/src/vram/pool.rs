@@ -4,12 +4,15 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::ffi::{LlamaModel, FfiError, LoadParams};
+use crate::ffi::lora::estimate_lora_vram;
 
 // 槽位结构
 pub struct Slot {
     pub model_id: String,
     pub model: Arc<LlamaModel>,
     pub last_access: Instant,
+    pub current_lora: Option<String>,
+    pub current_lora_size: usize,
 }
 
 // VRAM池结构
@@ -46,6 +49,8 @@ impl VramPool {
             model_id: id.clone(),
             model: Arc::clone(&model),
             last_access: Instant::now(),
+            current_lora: None,
+            current_lora_size: 0,
         });
 
         // 更新LRU列表
@@ -87,5 +92,23 @@ impl VramPool {
     /// 获取当前使用量
     pub fn usage(&self) -> usize {
         self.slots.len()
+    }
+
+    pub fn switch_lora(&mut self, model_id: &str, lora_path: PathBuf) -> Result<(), FfiError> {
+        let slot = self.slots.get_mut(model_id).ok_or_else(|| FfiError::ModelNotFound(PathBuf::from(model_id)))?;
+        let lora_vram = estimate_lora_vram(&lora_path)?;
+        if lora_vram > self.available_vram() {
+            return Err(FfiError::OutOfMemory { requested: lora_vram/1024/1024, available: self.available_vram()/1024/1024 });
+        }
+        slot.model.apply_lora(&lora_path)?;
+        slot.current_lora = Some(lora_path.to_string_lossy().to_string());
+        slot.current_lora_size = lora_vram;
+        Ok(())
+    }
+    
+    fn available_vram(&self) -> usize {
+        let total: usize = 6 * 1024 * 1024 * 1024;
+        let used: usize = self.slots.values().map(|s| s.model.size_bytes() + s.current_lora_size).sum();
+        total.saturating_sub(used)
     }
 }

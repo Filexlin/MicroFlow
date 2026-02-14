@@ -11,10 +11,12 @@ use std::sync::Once;
 pub mod error;
 pub mod types;
 pub mod wrapper;
+pub mod lora;
 
 pub use error::FfiError;
 pub use types::{LoadParams, ContextParams};
 pub use wrapper::{LlamaModel, LlamaContext};
+pub use lora::{LoRAState, validate_lora_header, estimate_lora_vram};
 
 pub(crate) static LLAMA_BACKEND_INITIALIZED: AtomicBool = AtomicBool::new(false);
 pub(crate) static INIT_ONCE: Once = Once::new();

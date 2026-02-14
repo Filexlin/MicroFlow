@@ -1,4 +1,5 @@
-use crate::engine::NodeId;
+pub type NodeId = String;
+
 use std::collections::HashMap;
 
 pub type PortId = String;

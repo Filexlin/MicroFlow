@@ -1,8 +1,11 @@
 [package]
-name = "microflow-python-runtime"
+name = "python_runtime"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-serde = { workspace = true }
-serde_json = { workspace = true }
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+jsonrpsee = { version = "0.22", features = ["server"] }
+tracing = "0.1"

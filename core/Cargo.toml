@@ -12,6 +12,7 @@ dashmap = { workspace = true }
 arc-swap = { workspace = true }
 llama-cpp-rs = { version = "0.3", features = ["cuda"] }
 thiserror = "1.0"
+tracing = "0.1"
 
 [dev-dependencies]
 proptest = { workspace = true }
