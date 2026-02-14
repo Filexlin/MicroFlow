@@ -97,8 +97,9 @@ impl VramPool {
     pub fn switch_lora(&mut self, model_id: &str, lora_path: PathBuf) -> Result<(), FfiError> {
         let slot = self.slots.get_mut(model_id).ok_or_else(|| FfiError::ModelNotFound(PathBuf::from(model_id)))?;
         let lora_vram = estimate_lora_vram(&lora_path)?;
-        if lora_vram > self.available_vram() {
-            return Err(FfiError::OutOfMemory { requested: lora_vram/1024/1024, available: self.available_vram()/1024/1024 });
+        let available = self.available_vram()?;
+        if lora_vram > available {
+            return Err(FfiError::OutOfMemory { requested: lora_vram/1024/1024, available: available/1024/1024 });
         }
         slot.model.apply_lora(&lora_path)?;
         slot.current_lora = Some(lora_path.to_string_lossy().to_string());
@@ -106,9 +107,9 @@ impl VramPool {
         Ok(())
     }
     
-    fn available_vram(&self) -> usize {
+    fn available_vram(&self) -> Result<usize, FfiError> {
         let total: usize = 6 * 1024 * 1024 * 1024;
-        let used: usize = self.slots.values().map(|s| s.model.size_bytes() + s.current_lora_size).sum();
-        total.saturating_sub(used)
+        let used: usize = self.slots.values().map(|s| s.model.size_bytes() + s.current_lora_size).sum::<Result<usize, FfiError>>()?;
+        Ok(total.saturating_sub(used))
     }
 }

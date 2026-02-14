@@ -99,21 +99,21 @@ impl LlamaModel {
         Ok(Self { inner, lora_state })
     }
 
-    pub fn size_bytes(&self) -> usize {
-        self.inner.lock().unwrap().size_bytes
+    pub fn size_bytes(&self) -> Result<usize, FfiError> {
+        Ok(self.inner.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?.size_bytes)
     }
-    pub fn n_vocab(&self) -> usize {
-        self.inner.lock().unwrap().n_vocab
+    pub fn n_vocab(&self) -> Result<usize, FfiError> {
+        Ok(self.inner.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?.n_vocab)
     }
-    pub fn n_layer(&self) -> usize {
-        self.inner.lock().unwrap().n_layer
+    pub fn n_layer(&self) -> Result<usize, FfiError> {
+        Ok(self.inner.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?.n_layer)
     }
 
-    pub(crate) fn with_ptr<F, R>(&self, f: F) -> R
+    pub(crate) fn with_ptr<F, R>(&self, f: F) -> Result<R, FfiError>
     where F: FnOnce(*const llama_cpp_rs::llama_model) -> R,
     {
-        let model = self.inner.lock().unwrap();
-        f(model.ptr.as_ptr())
+        let model = self.inner.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?;
+        Ok(f(model.ptr.as_ptr()))
     }
 
     pub fn apply_lora<P: AsRef<Path>>(&self, lora_path: P) -> Result<(), FfiError> {
@@ -127,7 +127,7 @@ impl LlamaModel {
         let path_str = path.to_str().ok_or_else(|| FfiError::InvalidParameter("路径非法".into()))?;
         
         // 卸载旧LoRA
-        if self.lora_state.lock().unwrap().active_lora.is_some() {
+        if self.lora_state.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?.active_lora.is_some() {
             self.unload_lora_inner(&mut model)?;
         }
         
@@ -144,7 +144,7 @@ impl LlamaModel {
         let elapsed = start.elapsed();
         if elapsed > Duration::from_millis(100) { eprintln!("警告: LoRA耗时{:?}", elapsed); }
         
-        let mut state = self.lora_state.lock().unwrap();
+        let mut state = self.lora_state.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?;
         state.active_lora = Some(path.to_string_lossy().to_string());
         state.apply_time = elapsed;
         Ok(())
@@ -153,7 +153,7 @@ impl LlamaModel {
     pub fn unload_lora(&self) -> Result<(), FfiError> {
         let mut model = self.inner.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?;
         self.unload_lora_inner(&mut model)?;
-        self.lora_state.lock().unwrap().active_lora = None;
+        self.lora_state.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?.active_lora = None;
         Ok(())
     }
     
@@ -185,9 +185,10 @@ impl LlamaContext {
         // - model.inner.ptr是有效的llama_model指针
         // - params已转换为有效的llama_context_params
         // - backend已初始化
+        let model_inner = model.inner.lock().map_err(|_| FfiError::Internal("锁中毒".into()))?;
         let ctx_ptr = unsafe {
             llama_cpp_rs::llama_new_context_with_model(
-                model.inner.ptr.as_ptr(),
+                model_inner.ptr.as_ptr(),
                 params.into(),
             ).map_err(|e| FfiError::Internal(format!("Context创建失败: {}", e)))?
         };
