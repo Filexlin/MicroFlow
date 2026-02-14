@@ -7,10 +7,12 @@ pub mod types;
 pub mod engine;
 pub mod parameter;
 pub mod vram;
+pub mod ffi;
 
 pub use types::{DataType, DataValue, ModelId, Error};
 pub use engine::*;
 pub use parameter::*;
 pub use vram::*;
+pub use ffi::*;
 
 // TODO: Week 1 implementation
