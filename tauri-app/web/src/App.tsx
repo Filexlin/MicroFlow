@@ -7,7 +7,7 @@ import './App.css';
 
 function App() {
   const [status, setStatus] = useState('');
-  const { selectedNode, validateWorkflow, saveWorkflow, loadWorkflow } = useWorkflowStore();
+  const { selectedNode, validateWorkflow, saveWorkflow, loadWorkflow, executeWorkflow, isExecuting, executionResult } = useWorkflowStore();
 
   const testBackend = async () => {
     const result = await invoke('get_system_info');
@@ -79,12 +79,23 @@ function App() {
           <h1>MicroFlow - Visual AI Workflow</h1>
           <div style={{marginBottom:10}}>
             <button onClick={testBackend} style={{marginRight:10}}>Test Backend</button>
-            <button onClick={()=>alert('Run workflow')}>▶ Run</button>
+            <button 
+              onClick={executeWorkflow} 
+              disabled={isExecuting}
+              style={{marginRight:10}}
+            >
+              {isExecuting ? '⏳ 执行中...' : '▶ 运行工作流'}
+            </button>
             <button onClick={handleValidate} style={{marginLeft:10}}>✓ 验证</button>
             <button onClick={handleSave} style={{marginLeft:10}}>💾 保存</button>
             <button onClick={handleLoad} style={{marginLeft:10}}>📂 加载</button>
             <span style={{marginLeft:10,color:'#666'}}>{status}</span>
           </div>
+          {executionResult && (
+            <div style={{marginTop:10, padding:10, background:'#f0f0f0', borderRadius:4}}>
+              <strong>执行结果:</strong> {executionResult}
+            </div>
+          )}
         </div>
         <FlowCanvas />
       </div>

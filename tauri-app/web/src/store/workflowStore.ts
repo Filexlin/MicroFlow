@@ -6,6 +6,8 @@ interface WorkflowState {
   nodes: Node[];
   edges: Edge[];
   selectedNode: Node | null;
+  isExecuting: boolean;
+  executionResult: string | null;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
   setSelectedNode: (node: Node | null) => void;
@@ -13,6 +15,7 @@ interface WorkflowState {
   validateWorkflow: () => Promise<boolean>;
   saveWorkflow: () => Promise<string>;
   loadWorkflow: (json: string) => Promise<void>;
+  executeWorkflow: () => Promise<void>;
 }
 
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
@@ -23,6 +26,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   ],
   edges: [],
   selectedNode: null,
+  isExecuting: false,
+  executionResult: null,
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   setSelectedNode: (node) => set({ selectedNode: node }),
@@ -60,6 +65,42 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     } catch (error) {
       alert(`加载失败: ${error}`);
       throw error;
+    }
+  },
+  executeWorkflow: async () => {
+    const { nodes, edges, validateWorkflow } = get();
+    
+    if (!await validateWorkflow()) return;
+    
+    set({ isExecuting: true, executionResult: null });
+    
+    try {
+      // 构造工作流数据
+      const workflow = {
+        version: "1.0",
+        nodes: nodes.map(n => ({
+          id: n.id,
+          type: n.type,
+          position: n.position,
+          data: n.data
+        })),
+        edges: edges.map(e => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          animated: e.animated || false
+        }))
+      };
+      
+      const result = await invoke('execute_workflow', {
+        workflow_json: JSON.stringify(workflow)
+      });
+      
+      set({ executionResult: result as string });
+    } catch (e) {
+      set({ executionResult: '错误: ' + e });
+    } finally {
+      set({ isExecuting: false });
     }
   }
 }));

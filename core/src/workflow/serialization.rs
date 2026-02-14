@@ -38,4 +38,8 @@ impl WorkflowData {
     pub fn from_json(s: &str) -> Result<Self, String> {
         serde_json::from_str(s).map_err(|e| e.to_string())
     }
+    
+    pub fn get_node(&self, node_id: &str) -> Option<&NodeData> {
+        self.nodes.iter().find(|node| node.id == node_id)
+    }
 }
