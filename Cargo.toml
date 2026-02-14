@@ -1,5 +1,5 @@
 [workspace]
-members = ["abi", "core", "nodes/*", "python_runtime", "desktop", "cli", "distributed"]
+members = ["abi", "core", "nodes", "python_runtime", "desktop", "cli", "distributed"]
 resolver = "2"
 
 [workspace.dependencies]
