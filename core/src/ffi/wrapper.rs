@@ -209,6 +209,3 @@ impl Drop for LlamaContext {
         unsafe { llama_cpp_rs::llama_free(self.ctx_ptr.as_ptr()); }
     }
 }
-
-impl !Send for LlamaContext {}
-impl !Sync for LlamaContext {}
