@@ -1,10 +1,11 @@
 use std::sync::Arc;
 use std::time::{Instant};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::ffi::{LlamaModel, FfiError, LoadParams};
 use crate::ffi::lora::estimate_lora_vram;
+use crate::model::{LoraLoader, ModelError};
 
 // 槽位结构
 pub struct Slot {
@@ -94,17 +95,54 @@ impl VramPool {
         self.slots.len()
     }
 
-    pub fn switch_lora(&mut self, model_id: &str, lora_path: PathBuf) -> Result<(), FfiError> {
+    pub fn load_lora(&mut self, model_id: &str, lora_path: &Path) -> Result<(), FfiError> {
         let slot = self.slots.get_mut(model_id).ok_or_else(|| FfiError::ModelNotFound(PathBuf::from(model_id)))?;
-        let lora_vram = estimate_lora_vram(&lora_path)?;
+        
+        // 校验 LoRA 文件
+        let metadata = LoraLoader::validate(lora_path)
+            .map_err(|e| FfiError::Internal(format!("LoRA 验证失败: {:?}", e)))?;
+        
+        // 检查空闲显存是否足够
         let available = self.available_vram()?;
-        if lora_vram > available {
-            return Err(FfiError::OutOfMemory { requested: lora_vram/1024/1024, available: available/1024/1024 });
+        if metadata.estimated_vram > available {
+            return Err(FfiError::OutOfMemory { 
+                requested: metadata.estimated_vram/1024/1024, 
+                available: available/1024/1024 
+            });
         }
-        slot.model.apply_lora(&lora_path)?;
+        
+        // 加载 LoRA
+        slot.model.apply_lora(lora_path)
+            .map_err(|e| FfiError::Internal(format!("LoRA 加载失败: {:?}", e)))?;
+        
         slot.current_lora = Some(lora_path.to_string_lossy().to_string());
-        slot.current_lora_size = lora_vram;
+        slot.current_lora_size = metadata.estimated_vram;
+        
         Ok(())
+    }
+    
+    pub fn unload_lora(&mut self, model_id: &str) -> Result<(), FfiError> {
+        let slot = self.slots.get_mut(model_id).ok_or_else(|| FfiError::ModelNotFound(PathBuf::from(model_id)))?;
+        
+        // 卸载 LoRA
+        slot.model.unload_lora()
+            .map_err(|e| FfiError::Internal(format!("LoRA 卸载失败: {:?}", e)))?;
+        
+        slot.current_lora = None;
+        slot.current_lora_size = 0;
+        
+        Ok(())
+    }
+    
+    pub fn switch_lora(&mut self, model_id: &str, lora_path: PathBuf) -> Result<(), FfiError> {
+        // 先尝试卸载当前 LoRA
+        if let Err(e) = self.unload_lora(model_id) {
+            // 卸载失败不影响切换，继续尝试加载新 LoRA
+            eprintln!("卸载旧 LoRA 失败: {:?}", e);
+        }
+        
+        // 加载新 LoRA
+        self.load_lora(model_id, &lora_path)
     }
     
     fn available_vram(&self) -> Result<usize, FfiError> {
