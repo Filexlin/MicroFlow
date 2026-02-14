@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use thiserror::Error;
+use std::path::PathBuf;
 
 #[derive(Error, Debug, Clone)]
 pub enum FfiError {
@@ -22,23 +22,15 @@ pub enum FfiError {
     #[error("FFI内部错误: {0}")]
     Internal(String),
     
-    #[error("无效参数: {0}")]
+    #[error("参数无效: {0}")]
     InvalidParameter(String),
+    
+    #[error("Backend未初始化")]
+    BackendNotInitialized,
 }
 
-// 从llama_cpp_rs::Error转换
-impl From<llama_cpp_rs::Error> for FfiError {
-    fn from(err: llama_cpp_rs::Error) -> Self {
-        use llama_cpp_rs::ErrorKind;
-        match err.kind() {
-            ErrorKind::FileNotFound => Self::ModelNotFound(err.path().into()),
-            ErrorKind::InvalidFormat => Self::InvalidGguf(err.to_string()),
-            ErrorKind::GpuError => Self::GpuInitFailed {
-                reason: err.to_string(),
-                #[cfg(debug_assertions)]
-                raw_code: err.raw_code(),
-            },
-            _ => Self::Internal(err.to_string()),
-        }
+impl FfiError {
+    pub fn from_llama_error(err: String) -> Self {
+        Self::Internal(err)
     }
 }
