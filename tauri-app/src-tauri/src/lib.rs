@@ -1,9 +1,11 @@
 use tauri::Manager;
+use tauri::api::dialog::FileDialogBuilder;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use microflow_core::vram::pool::VramPool;
 use microflow_core::workflow::{detect_cycles, WorkflowData, NodeData, EdgeData, WorkflowExecutor, ExecutionContext};
 use serde::{Deserialize, Serialize};
+use std::fs;
 
 pub struct AppState {
     pub vram_pool: Arc<Mutex<VramPool>>,
@@ -73,6 +75,34 @@ async fn execute_workflow(
     Ok(format!("执行成功: {:?}", result.final_outputs))
 }
 
+#[tauri::command]
+async fn save_file_dialog(window: tauri::Window, content: String) -> Result<(), String> {
+    FileDialogBuilder::new()
+        .add_filter("MicroFlow", &["mflow"])
+        .set_file_name("workflow.mflow")
+        .save_file(move |path| {
+            if let Some(path) = path {
+                let _ = fs::write(path, content);
+            }
+        });
+    Ok(())
+}
+
+#[tauri::command]
+async fn open_file_dialog(window: tauri::Window) -> Result<String, String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    
+    FileDialogBuilder::new()
+        .add_filter("MicroFlow", &["mflow"])
+        .pick_file(move |path| {
+            let result = path.map(|p| fs::read_to_string(p).unwrap_or_default());
+            let _ = tx.send(result);
+        });
+    
+    rx.recv().map_err(|e| e.to_string())?
+        .ok_or("未选择文件".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -85,7 +115,9 @@ pub fn run() {
             execute_node,
             save_workflow,
             load_workflow,
-            execute_workflow
+            execute_workflow,
+            save_file_dialog,
+            open_file_dialog
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

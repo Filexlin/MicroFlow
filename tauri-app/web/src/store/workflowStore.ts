@@ -14,7 +14,7 @@ interface WorkflowState {
   updateNodeData: (nodeId: string, data: any) => void;
   validateWorkflow: () => Promise<boolean>;
   saveWorkflow: () => Promise<string>;
-  loadWorkflow: (json: string) => Promise<void>;
+  loadWorkflow: () => Promise<void>;
   executeWorkflow: () => Promise<void>;
 }
 
@@ -50,18 +50,23 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   saveWorkflow: async () => {
     try {
       const { nodes, edges } = get();
-      const result = await invoke('save_workflow', { nodes, edges });
-      return result as string;
+      const json = await invoke('save_workflow', { nodes, edges });
+      if (json) {
+        await invoke('save_file_dialog', { content: json });
+      }
+      return json as string;
     } catch (error) {
       alert(`保存失败: ${error}`);
       throw error;
     }
   },
-  loadWorkflow: async (json) => {
+  loadWorkflow: async () => {
     try {
-      const data = await invoke('load_workflow', { json });
-      const workflowData = data as any;
-      set({ nodes: workflowData.nodes, edges: workflowData.edges });
+      const content = await invoke('open_file_dialog') as string;
+      if (content) {
+        const data = JSON.parse(content);
+        set({ nodes: data.nodes, edges: data.edges });
+      }
     } catch (error) {
       alert(`加载失败: ${error}`);
       throw error;

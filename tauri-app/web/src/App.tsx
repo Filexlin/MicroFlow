@@ -24,52 +24,18 @@ function App() {
 
   const handleSave = async () => {
     try {
-      // 1. 验证工作流
-      const isValid = await validateWorkflow();
-      if (!isValid) return;
-
-      // 2. 生成JSON
-      const json = await saveWorkflow();
-
-      // 3. 触发下载
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `workflow_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.mflow`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      alert('工作流保存成功！');
+      await saveWorkflow();
     } catch (error) {
       console.error('保存失败:', error);
     }
   };
 
-  const handleLoad = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.mflow,application/json';
-    input.onchange = async (e) => {
-      const target = e.target as HTMLInputElement;
-      if (target.files && target.files[0]) {
-        const file = target.files[0];
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          const json = event.target?.result as string;
-          try {
-            await loadWorkflow(json);
-            alert('工作流加载成功！');
-          } catch (error) {
-            console.error('加载失败:', error);
-          }
-        };
-        reader.readAsText(file);
-      }
-    };
-    input.click();
+  const handleLoad = async () => {
+    try {
+      await loadWorkflow();
+    } catch (error) {
+      console.error('加载失败:', error);
+    }
   };
 
   return (
