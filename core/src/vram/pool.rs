@@ -72,12 +72,29 @@ impl VramPool {
     /// 淘汰最久未使用的模型
     pub fn evict_lru(&mut self) -> Result<(), FfiError> {
         if let Some(oldest_id) = self.lru.first().cloned() {
-            // 从LRU列表中移除
+            // FIX: 先尝试卸载LoRA（如果有）
+            if let Some(slot) = self.slots.get(&oldest_id) {
+                if slot.current_lora.is_some() {
+                    if let Err(e) = slot.model.unload_lora() {
+                        eprintln!("警告: 淘汰模型{}时卸载LoRA失败: {:?}", oldest_id, e);
+                    }
+                }
+            }
+            
+            // FIX: 从LRU列表中移除
             self.lru.remove(0);
-            // 从槽位中移除
-            self.slots.remove(&oldest_id);
+            
+            // FIX: 从槽位中移除（触发Drop，自动释放VRAM）
+            if let Some(slot) = self.slots.remove(&oldest_id) {
+                // 显式drop模型，确保GPU内存立即释放
+                drop(slot.model);
+                println!("已淘汰模型，释放VRAM: {}", oldest_id);
+            }
+            
+            Ok(())
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
     /// 获取当前槽位使用情况
