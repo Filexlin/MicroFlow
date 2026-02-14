@@ -1,5 +1,6 @@
-import { ReactFlow, Background, Controls, MiniMap, useNodesState, useEdgesState, addEdge, Handle, Position } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, addEdge, Handle, Position } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useWorkflowStore } from '../store/workflowStore';
 
 // 基础节点组件
 const InputNode = ({ data }: any) => (
@@ -27,16 +28,21 @@ const OutputNode = ({ data }: any) => (
 const nodeTypes = { input: InputNode, llm: LLMNode, output: OutputNode };
 
 export default function FlowCanvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState([
-    { id: '1', type: 'input', position: { x: 100, y: 100 }, data: { label: 'Text' } },
-    { id: '2', type: 'llm', position: { x: 300, y: 100 }, data: { label: 'GPT' } },
-    { id: '3', type: 'output', position: { x: 500, y: 100 }, data: { label: 'Result' } }
-  ]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const { nodes, edges, setNodes, setEdges, setSelectedNode } = useWorkflowStore();
 
   return (
-    <div style={{width:'100%',height:'80vh'}}>
-      <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={(c)=>setEdges((eds)=>addEdge({...c,animated:true},eds))} nodeTypes={nodeTypes} fitView>
+    <div style={{width:'100%',height:'100vh'}}>
+      <ReactFlow 
+        nodes={nodes} 
+        edges={edges} 
+        onNodesChange={setNodes} 
+        onEdgesChange={setEdges} 
+        onConnect={(c)=>setEdges((eds)=>addEdge({...c,animated:true},eds))} 
+        onNodeClick={(_, node) => setSelectedNode(node)}
+        onPaneClick={() => setSelectedNode(null)}
+        nodeTypes={nodeTypes} 
+        fitView
+      >
         <Controls /><MiniMap /><Background />
       </ReactFlow>
     </div>
