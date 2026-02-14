@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
 use serde::{Deserialize, Serialize};
+use base64;
 
 use crate::types::data_type::DataType;
 
@@ -38,6 +39,7 @@ pub enum DataValue {
     Text(String),
     Boolean(bool),
     Path(PathBuf),
+    Binary(Vec<u8>),
     List(Vec<DataValue>),
     Dict(HashMap<String, DataValue>),
     Model(ModelId),
@@ -51,6 +53,7 @@ impl DataValue {
             DataValue::Text(_) => DataType::Text,
             DataValue::Boolean(_) => DataType::Boolean,
             DataValue::Path(_) => DataType::Path,
+            DataValue::Binary(_) => DataType::Binary,
             DataValue::List(items) => {
                 if let Some(first) = items.first() {
                     DataType::List(Box::new(first.data_type()))
@@ -59,7 +62,7 @@ impl DataValue {
                     DataType::List(Box::new(DataType::Number))
                 }
             }
-            DataValue::Dict(_, _) => DataType::Dict("key".to_string(), Box::new(DataType::Number)),
+            DataValue::Dict(_) => DataType::Dict("key".to_string(), Box::new(DataType::Number)),
             DataValue::Model(_) => DataType::Model,
             DataValue::Stream(_) => DataType::Stream(Box::new(DataType::Number)),
         }
@@ -102,6 +105,11 @@ impl DataValue {
             (DataValue::Boolean(b), DataType::Text) => Ok(DataValue::Text(b.to_string())),
             (DataValue::Path(p), DataType::Path) => Ok(DataValue::Path(p.clone())),
             (DataValue::Path(p), DataType::Text) => Ok(DataValue::Text(p.to_string_lossy().to_string())),
+            (DataValue::Binary(b), DataType::Binary) => Ok(DataValue::Binary(b.clone())),
+            (DataValue::Binary(b), DataType::Text) => Ok(DataValue::Text(base64::encode(b))),
+            (DataValue::Text(s), DataType::Binary) => {
+                base64::decode(s).map(DataValue::Binary).map_err(|_| Error::ConversionError("Cannot convert string to binary".to_string()))
+            }
             _ => Err(Error::TypeMismatch(format!("Cannot convert {:?} to {:?}", self, target))),
         }
     }

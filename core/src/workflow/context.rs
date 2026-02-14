@@ -16,12 +16,25 @@ impl ExecutionContext {
         }
     }
     
+    pub fn get_model(&self, model_id: &str) -> Option<Arc<crate::ffi::LlamaModel>> {
+        let mut pool = self.vram_pool.lock().unwrap();
+        pool.get_model(model_id)
+    }
+    
     pub fn set_outputs(&mut self, node_id: String, outputs: HashMap<String, DataValue>) {
         self.outputs.insert(node_id, outputs);
     }
     
+    pub fn set_node_outputs(&mut self, node_id: String, outputs: HashMap<String, DataValue>) {
+        self.set_outputs(node_id, outputs);
+    }
+    
     pub fn get_outputs(&self, node_id: &str) -> Option<&HashMap<String, DataValue>> {
         self.outputs.get(node_id)
+    }
+    
+    pub fn get_node_outputs(&self, node_id: &str) -> Option<&HashMap<String, DataValue>> {
+        self.get_outputs(node_id)
     }
     
     pub fn get_final_outputs(&self) -> HashMap<String, DataValue> {

@@ -7,6 +7,9 @@ pub struct NodeData {
     pub type: String,
     pub position: Position,
     pub data: serde_json::Value,
+    pub config: Option<serde_json::Value>,
+    pub default_inputs: Option<serde_json::Value>,
+    pub input_types: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
