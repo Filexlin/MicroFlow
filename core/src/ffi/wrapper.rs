@@ -2,12 +2,13 @@ use std::sync::Arc;
 use std::ptr::NonNull;
 use std::marker::PhantomData;
 use std::path::Path;
+use std::ffi::c_void;
 
 use crate::ffi::{FfiError, LoadParams, ContextParams};
 
 // 内部模型结构体（包含原始指针）
 pub struct InnerModel {
-    model_ptr: NonNull<c_void>,
+    ptr: NonNull<c_void>,
     size_bytes: usize,
     n_vocab: usize,
 }
@@ -15,11 +16,11 @@ pub struct InnerModel {
 impl Drop for InnerModel {
     fn drop(&mut self) {
         // SAFETY: 这个unsafe块是安全的，因为：
-        // 1. model_ptr是一个有效的NonNull<c_void>指针
-        // 2. 我们在Drop中调用llama_free_model来释放内存
+        // 1. ptr是一个有效的NonNull<c_void>指针
+        // 2. 我们在Drop中调用llama_cpp_rs::llama_free_model来释放内存
         // 3. 这个指针在创建时已经被验证为有效
         unsafe {
-            llama_free_model(self.model_ptr.as_ptr());
+            llama_cpp_rs::llama_free_model(self.ptr.as_ptr());
         }
     }
 }
@@ -35,13 +36,19 @@ unsafe impl Sync for LlamaModel {}
 
 impl LlamaModel {
     /// 从文件加载模型
-    pub fn from_file(path: &Path, params: LoadParams) -> Result<Self, FfiError> {
+    pub fn from_file<P: AsRef<Path>>(
+        path: P,
+        params: LoadParams,
+    ) -> Result<Self, FfiError> {
+        let path = path.as_ref();
+        
         // 检查路径是否存在
         if !path.exists() {
             return Err(FfiError::ModelNotFound(path.to_path_buf()));
         }
 
         // 暂时使用todo!()占位，实际实现需要调用llama_cpp_rs的API
+        // 注意：实际实现时需要检查backend初始化
         todo!("实现从文件加载模型的逻辑")
     }
 
@@ -56,11 +63,11 @@ impl LlamaModel {
     }
 
     /// 使用模型指针执行闭包
-    pub fn with_ptr<F, R>(&self, f: F) -> R
+    pub(crate) fn with_ptr<F, R>(&self, f: F) -> R
     where
         F: FnOnce(*const c_void) -> R,
     {
-        f(self.inner.model_ptr.as_ptr())
+        f(self.inner.ptr.as_ptr())
     }
 }
 
@@ -68,7 +75,7 @@ impl LlamaModel {
 pub struct LlamaContext {
     model: Arc<InnerModel>,
     ctx_ptr: NonNull<c_void>,
-    _phantom: PhantomData<*mut c_void>, // 用于标记!Send/!Sync
+    _marker: PhantomData<*mut ()>,
 }
 
 // 实现Drop，先释放上下文，模型由Arc自动管理
@@ -76,10 +83,10 @@ impl Drop for LlamaContext {
     fn drop(&mut self) {
         // SAFETY: 这个unsafe块是安全的，因为：
         // 1. ctx_ptr是一个有效的NonNull<c_void>指针
-        // 2. 我们在Drop中调用llama_free来释放上下文
+        // 2. 我们在Drop中调用llama_cpp_rs::llama_free来释放上下文
         // 3. 这个指针在创建时已经被验证为有效
         unsafe {
-            llama_free(self.ctx_ptr.as_ptr());
+            llama_cpp_rs::llama_free(self.ctx_ptr.as_ptr());
         }
     }
 }
@@ -88,9 +95,9 @@ impl Drop for LlamaContext {
 impl !Send for LlamaContext {}
 impl !Sync for LlamaContext {}
 
-// 从llama_cpp_rs::ffi重新导出必要的函数
-#[allow(non_snake_case)]
-extern "C" {
-    fn llama_free_model(model: *mut c_void);
-    fn llama_free(ctx: *mut c_void);
-}
+// 全局backend初始化标志
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::SeqCst;
+
+static LLAMA_BACKEND_INITIALIZED: AtomicBool = AtomicBool::new(false);
+

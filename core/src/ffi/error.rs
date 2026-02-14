@@ -6,7 +6,7 @@ pub enum FfiError {
     #[error("模型文件不存在: {0}")]
     ModelNotFound(PathBuf),
     
-    #[error("无效的GGUF文件: {0}")]
+    #[error("GGUF格式无效: {0}")]
     InvalidGguf(String),
     
     #[error("GPU初始化失败: {reason}")]
@@ -16,16 +16,29 @@ pub enum FfiError {
         raw_code: Option<i32>,
     },
     
-    #[error("内存不足: {0}")]
-    OutOfMemory(String),
+    #[error("内存不足: 请求{requested}MB，可用{available}MB")]
+    OutOfMemory { requested: usize, available: usize },
     
-    #[error("内部错误: {0}")]
+    #[error("FFI内部错误: {0}")]
     Internal(String),
+    
+    #[error("无效参数: {0}")]
+    InvalidParameter(String),
 }
 
-// 从llama_cpp_rs::Error转换（暂时使用todo!()占位）
+// 从llama_cpp_rs::Error转换
 impl From<llama_cpp_rs::Error> for FfiError {
-    fn from(_: llama_cpp_rs::Error) -> Self {
-        todo!("实现llama_cpp_rs::Error到FfiError的转换")
+    fn from(err: llama_cpp_rs::Error) -> Self {
+        use llama_cpp_rs::ErrorKind;
+        match err.kind() {
+            ErrorKind::FileNotFound => Self::ModelNotFound(err.path().into()),
+            ErrorKind::InvalidFormat => Self::InvalidGguf(err.to_string()),
+            ErrorKind::GpuError => Self::GpuInitFailed {
+                reason: err.to_string(),
+                #[cfg(debug_assertions)]
+                raw_code: err.raw_code(),
+            },
+            _ => Self::Internal(err.to_string()),
+        }
     }
 }

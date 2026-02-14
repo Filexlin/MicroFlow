@@ -15,9 +15,15 @@ pub struct ContextParams {
     pub n_threads: usize,
 }
 
-// 从LoadParams转换为llama_cpp_rs::LlamaModelParams（暂时使用todo!()占位）
+// 从LoadParams转换为llama_cpp_rs::LlamaModelParams
 impl From<LoadParams> for llama_cpp_rs::LlamaModelParams {
-    fn from(_: LoadParams) -> Self {
-        todo!("实现LoadParams到LlamaModelParams的转换")
+    fn from(params: LoadParams) -> Self {
+        let mut model_params = Self::default();
+        model_params.set_n_gpu_layers(params.n_gpu_layers);
+        model_params.set_main_gpu(params.main_gpu);
+        model_params.set_use_mmap(params.use_mmap);
+        model_params.set_use_mlock(params.use_mlock);
+        model_params
     }
 }
+
