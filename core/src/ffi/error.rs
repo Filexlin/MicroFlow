@@ -27,6 +27,12 @@ pub enum FfiError {
     
     #[error("Backend未初始化")]
     BackendNotInitialized,
+    
+    #[error("Backend初始化失败")]
+    BackendInit,
+    
+    #[error("Context创建失败")]
+    ContextCreationFailed,
 }
 
 impl FfiError {

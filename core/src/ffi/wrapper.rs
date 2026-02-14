@@ -190,7 +190,18 @@ impl LlamaContext {
             llama_cpp_rs::llama_new_context_with_model(
                 model_inner.ptr.as_ptr(),
                 params.into(),
-            ).map_err(|e| FfiError::Internal(format!("Context创建失败: {}", e)))?
+            )
+        };
+
+        // FIX: 检查空指针（P0 致命问题）
+        let ctx_ptr = match ctx_ptr {
+            Ok(ptr) => {
+                if ptr.is_null() {
+                    return Err(FfiError::Internal("llama_new_context_with_model 返回空指针".to_string()));
+                }
+                ptr
+            }
+            Err(e) => return Err(FfiError::Internal(format!("Context创建失败: {}", e))),
         };
 
         Ok(Self {
