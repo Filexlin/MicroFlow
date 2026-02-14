@@ -6,6 +6,7 @@
 //! - RAII确保C资源正确释放
 
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Once;
 
 pub mod error;
 pub mod types;
@@ -16,16 +17,16 @@ pub use types::{LoadParams, ContextParams};
 pub use wrapper::{LlamaModel, LlamaContext};
 
 pub(crate) static LLAMA_BACKEND_INITIALIZED: AtomicBool = AtomicBool::new(false);
+pub(crate) static INIT_ONCE: Once = Once::new();
 
 pub fn initialize_backend() -> Result<(), FfiError> {
-    if LLAMA_BACKEND_INITIALIZED.load(Ordering::SeqCst) {
-        return Ok(());
-    }
-    
-    LLAMA_BACKEND_INITIALIZED.store(true, Ordering::SeqCst);
+    INIT_ONCE.call_once(|| unsafe {
+        llama_cpp_rs::llama_backend_init(false);
+        LLAMA_BACKEND_INITIALIZED.store(true, Ordering::SeqCst);
+    });
     Ok(())
 }
 
-pub(crate) fn is_backend_initialized() -> bool {
+pub fn is_backend_initialized() -> bool {
     LLAMA_BACKEND_INITIALIZED.load(Ordering::SeqCst)
 }

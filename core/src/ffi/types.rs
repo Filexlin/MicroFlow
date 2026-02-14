@@ -37,3 +37,24 @@ impl Default for ContextParams {
         }
     }
 }
+
+impl From<LoadParams> for llama_cpp_rs::LlamaModelParams {
+    fn from(p: LoadParams) -> Self {
+        let mut params = llama_cpp_rs::LlamaModelParams::default();
+        params.n_gpu_layers = p.n_gpu_layers;
+        params.main_gpu = p.main_gpu;
+        params.use_mmap = p.use_mmap;
+        params.use_mlock = p.use_mlock;
+        params
+    }
+}
+
+impl From<ContextParams> for llama_cpp_rs::LlamaContextParams {
+    fn from(p: ContextParams) -> Self {
+        let mut params = llama_cpp_rs::LlamaContextParams::default();
+        params.n_ctx = p.n_ctx;
+        params.n_batch = p.n_batch;
+        params.n_threads = p.n_threads;
+        params
+    }
+}
