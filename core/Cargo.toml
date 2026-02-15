@@ -10,6 +10,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 dashmap = { workspace = true }
 arc-swap = { workspace = true }
+walkdir = { workspace = true }
 llama_cpp_rs = { version = "0.3", default-features = false, optional = true }
 thiserror = "1.0"
 base64 = "0.21"

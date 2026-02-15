@@ -7,6 +7,7 @@ pub mod engine;
 pub mod ffi;
 pub mod model;
 pub mod parameter;
+pub mod python_library;
 pub mod types;
 pub mod vram;
 pub mod workflow;

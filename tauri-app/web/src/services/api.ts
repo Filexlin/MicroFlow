@@ -1,6 +1,17 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import React, { useState } from 'react';
 
+export interface PythonScript {
+  name: string;
+  description: string;
+  relative_path: string;
+  category: string;
+}
+
+export async function scanPythonLibrary(): Promise<Record<string, PythonScript[]>> {
+  return invoke('scan_python_library');
+}
+
 export class MicroFlowError extends Error {
   constructor(public code: string, message: string, public originalError?: unknown) {
     super(message);

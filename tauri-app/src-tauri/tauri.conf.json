@@ -6,5 +6,25 @@
   "build": {
     "devUrl": "http://localhost:5173",
     "frontendDist": "../web"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "MicroFlow",
+        "width": 1400,
+        "height": 900,
+        "center": true
+      }
+    ]
+  },
+  "plugins": {
+    "dialog": {
+      "open": true,
+      "save": true
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": ["msi"]
   }
 }
