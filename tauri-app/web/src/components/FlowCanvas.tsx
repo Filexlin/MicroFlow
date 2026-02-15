@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import {
-  ReactFlow, Node, Edge, Controls, Background, useNodesState, useEdgesState,
+  ReactFlow, Node, Controls, Background, useNodesState, useEdgesState,
   addEdge, Connection, NodeTypes, NodeProps, Handle, Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -46,7 +46,7 @@ const initialNodes: Node<NodeData>[] = [
 ];
 
 const FlowCanvas: React.FC = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const onConnect = useCallback(

@@ -12,7 +12,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@xyflow/react": "^11.0.0",
+    "reactflow": "^11.10.4",
     "zustand": "^4.4.0",
     "@tauri-apps/api": "^2.0.0"
   },

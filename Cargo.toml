@@ -4,6 +4,7 @@ members = [
     "python_runtime",
     "abi",
     "nodes",
+    "tauri-app/src-tauri",
 ]
 resolver = "2"
 
